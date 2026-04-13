@@ -272,7 +272,8 @@ async function analyzeImageWithAI(imagePath, filename, model) {
   const mimeType = imageExt === 'png' ? 'image/png' : 'image/jpeg';
   
   // 调用 qwen3.6-plus API
-  const apiKey = 'sk-sp-fde8fbf903f94736b5f63c9367b2e2dc';
+  // 优先从环境变量读取 API key
+  const apiKey = process.env.DASHSCOPE_API_KEY || process.env.BAILIAN_API_KEY || 'sk-sp-ed8c966887474ed0a099dc52723392db';
   const baseUrl = 'https://coding.dashscope.aliyuncs.com/v1';
   
   const prompt = `你是一个专业的珠宝鉴定师。请分析这张珠宝图片，提取以下信息并以 JSON 格式返回：
