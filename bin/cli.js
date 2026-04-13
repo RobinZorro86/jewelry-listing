@@ -261,27 +261,117 @@ program
 
 program.parse();
 
-// AI 图片分析函数
+// AI 图片分析函数 - 使用 qwen3.6-plus
 async function analyzeImageWithAI(imagePath, filename, model) {
-  // TODO: 集成实际的 AI API
-  // 目前返回模拟数据，实际使用时需要调用 qwen3.6-plus API
+  const fs = require('fs');
   
-  // 示例：基于文件名的简单推断（实际应调用 AI 模型）
-  const basename = path.basename(imagePath, path.extname(imagePath));
+  // 读取图片并转为 base64
+  const imageBuffer = fs.readFileSync(imagePath);
+  const base64Image = imageBuffer.toString('base64');
+  const imageExt = path.extname(imagePath).toLowerCase().replace('.', '');
+  const mimeType = imageExt === 'png' ? 'image/png' : 'image/jpeg';
   
-  // 模拟 AI 分析结果
-  return {
-    filename: filename,
-    primary_color: 'Gold',
-    secondary_color: 'Cream/White',
-    materials_detected: ['18K Gold', 'Freshwater Pearl'],
-    style_tags: ['Elegant', 'Minimalist', 'Classic'],
-    details: ['Smooth chain', 'Round pearl', 'Spring ring clasp'],
-    estimated_category: 'Necklace',
-    confidence: 0.92,
-    model_used: model,
-    analyzed_at: new Date().toISOString()
-  };
+  // 调用 qwen3.6-plus API
+  const apiKey = 'sk-sp-fde8fbf903f94736b5f63c9367b2e2dc';
+  const baseUrl = 'https://coding.dashscope.aliyuncs.com/v1';
+  
+  const prompt = `你是一个专业的珠宝鉴定师。请分析这张珠宝图片，提取以下信息并以 JSON 格式返回：
+
+{
+  "primary_color": "主色调，如 Gold/Silver/Rose Gold",
+  "secondary_color": "次要颜色，如 White/Cream/Black",
+  "materials_detected": ["检测到的材质，如 18K Gold", "Pearl", "Diamond"],
+  "style_tags": ["风格标签，如 Elegant", "Minimalist", "Vintage", "Classic"],
+  "details": ["细节描述，如 Smooth chain", "Round pearl", "Spring ring clasp"],
+  "estimated_category": "珠宝类型，如 Necklace/Earrings/Ring/Bracelet",
+  "confidence": 0.0-1.0 的置信度
+}
+
+请只返回 JSON，不要其他内容。`;
+  
+  try {
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: model || 'qwen3.6-plus',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: prompt
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:${mimeType};base64,${base64Image}`
+                }
+              }
+            ]
+          }
+        ],
+        temperature: 0.1,
+        max_tokens: 1000
+      })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API error: ${response.status} - ${errorText}`);
+    }
+    
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '{}';
+    
+    // 尝试解析 JSON
+    let result;
+    try {
+      // 提取 JSON（可能包含在 markdown 代码块中）
+      const jsonMatch = content.match(/```(?:json)?\n?([\s\S]*?)\n?```/) || [null, content];
+      const jsonStr = jsonMatch[1] || content;
+      result = JSON.parse(jsonStr.trim());
+    } catch (e) {
+      // 解析失败，使用默认结构
+      result = {
+        primary_color: 'Unknown',
+        secondary_color: 'Unknown',
+        materials_detected: ['Unknown'],
+        style_tags: ['Unknown'],
+        details: ['Unable to parse AI response'],
+        estimated_category: 'Jewelry',
+        confidence: 0.5
+      };
+    }
+    
+    return {
+      filename: filename,
+      ...result,
+      model_used: model || 'qwen3.6-plus',
+      analyzed_at: new Date().toISOString()
+    };
+    
+  } catch (error) {
+    console.error(`   ⚠️ AI API 调用失败: ${error.message}`);
+    // 返回降级结果
+    return {
+      filename: filename,
+      primary_color: 'Gold',
+      secondary_color: 'White',
+      materials_detected: ['18K Gold', 'Pearl'],
+      style_tags: ['Elegant'],
+      details: ['Analysis unavailable'],
+      estimated_category: 'Necklace',
+      confidence: 0.5,
+      model_used: model || 'qwen3.6-plus',
+      analyzed_at: new Date().toISOString(),
+      error: error.message
+    };
+  }
 }
 
 function generateAnalysisReport(results, model) {
