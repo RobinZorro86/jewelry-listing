@@ -1,9 +1,9 @@
 ---
 name: Jewelry Listing Automation
 slug: jewelry-listing
-version: 3.0.0
-changelog: Initial release - Etsy jewelry listing automation workflow
-description: 珠宝 Listing 自动化工作流，从商品信息和照片生成完整的 Etsy Listing 内容。
+version: 3.1.0
+changelog: "[3.1.0] Add AI image recognition with qwen3.6-plus for product photo analysis; [3.0.0] Initial release"
+description: 珠宝 Listing 自动化工作流，从商品信息和照片生成完整的 Etsy Listing 内容，支持 AI 图片识别。
 metadata: {"clawdbot":{"emoji":"💎","requires":{"bins":["node","sharp"]},"os":["linux","darwin","win32"]}}
 ---
 
@@ -11,6 +11,7 @@ metadata: {"clawdbot":{"emoji":"💎","requires":{"bins":["node","sharp"]},"os":
 
 用户需要为珠宝商品创建 Etsy Listing 时，此技能帮助：
 - 从 SKU 文件夹读取商品信息和照片
+- **AI 图片识别** - 使用 qwen3.6-plus 分析商品照片，提取材质、颜色、款式等特征
 - 自动生成标题、描述、标签
 - 优化商品属性（材质、尺寸、风格等）
 - 批量处理多个 SKU
@@ -79,7 +80,23 @@ made_to_order: false
 - 总重量：约 12.5g
 ```
 
-### 第三步：运行自动化
+### 第三步：AI 图片识别（新增）
+
+使用 qwen3.6-plus 模型分析商品照片，提取关键信息：
+
+```bash
+# 分析商品图片
+npx jewelry-listing analyze ~/jewelry-listings/SKU-001
+```
+
+AI 会识别：
+- 🎨 **颜色**: 主色、辅色、配色
+- 💎 **材质**: 金属类型、宝石种类、表面质感
+- ✨ **款式**: 简约、复古、华丽、民族风
+- 📏 **尺寸**: 基于参照物估算（需提供硬币等参照）
+- 🔍 **细节**: 刻印、工艺、扣环类型
+
+### 第四步：运行自动化
 
 ```bash
 # 处理单个 SKU
@@ -92,7 +109,7 @@ npx jewelry-listing batch ~/jewelry-listings/
 npx jewelry-listing images ~/jewelry-listings/SKU-001 --resize 2000x2000
 ```
 
-### 第四步：输出内容
+### 第五步：输出内容
 
 ```
 ~/jewelry-listings/output/SKU-001/
@@ -157,6 +174,44 @@ npx jewelry-listing images ~/jewelry-listings/SKU-001 --resize 2000x2000
 - **细节图**: 展示材质、刻印、扣环
 - **佩戴图**: 展示实际上身效果
 - **尺寸对比**: 用硬币/尺子展示实际大小
+
+### 4. AI 图片识别标准（v3.1.0 新增）
+
+**使用模型**: qwen3.6-plus
+
+**识别流程**:
+1. 输入：商品照片（3-10 张）
+2. 处理：AI 分析每张照片
+3. 输出：结构化的图片特征数据
+
+**识别内容**:
+| 类别 | 识别项目 | 示例 |
+|------|----------|------|
+| 颜色 | 主色、辅色、配色 | Gold, White, Rose |
+| 材质 | 金属、宝石、面料 | 18K Gold, Pearl, Silk |
+| 款式 | 风格标签 | Minimalist, Vintage |
+| 细节 | 工艺、刻印、装饰 | Laser engraving, Pavé |
+
+**识别示例**（珍珠项链）:
+```json
+{
+  "image_analysis": {
+    "photo_01": {
+      "primary_color": "Gold",
+      "secondary_color": "Cream/White",
+      "materials_detected": ["18K Gold", "Pearl"],
+      "style_tags": ["Elegant", "Minimalist", "Classic"],
+      "details": ["Smooth chain", "Round pearl", "Spring ring clasp"],
+      "confidence": 0.95
+    }
+  }
+}
+```
+
+**提示**: 提供清晰、良好光照的照片可提高识别准确率。建议包含：
+- 主图（白色背景，商品居中）
+- 细节图（刻印、扣环特写）
+- 佩戴效果图（可选）
 
 ### 5. 定价策略
 

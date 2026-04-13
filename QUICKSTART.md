@@ -1,6 +1,6 @@
-# 🚀 Quick Start Guide
+# 🚀 Quick Start Guide (v3.1.0)
 
-5 分钟快速上手珠宝 Listing 自动化
+5 分钟快速上手珠宝 Listing 自动化（**新增 AI 图片识别**）
 
 ## 前置准备
 

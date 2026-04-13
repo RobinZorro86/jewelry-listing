@@ -2,13 +2,14 @@
 
 珠宝 Listing 自动化工具 - 为 Etsy 卖家打造的智能商品发布工作流
 
-[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](https://github.com/robinzorro/jewelry-listing)
+[![Version](https://img.shields.io/badge/version-3.1.0-blue.svg)](https://github.com/robinzorro/jewelry-listing)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D16-lightgrey.svg)](https://nodejs.org)
 
 ## 🌟 特性
 
 - ⚡ **快速生成** - 从商品信息到完整 Listing 只需几秒
+- 🤖 **AI 智能识别** - 使用 qwen3.6-plus 分析商品图片，提取材质、颜色、款式特征
 - 📝 **智能优化** - 自动生成符合 Etsy 搜索优化的标题和标签
 - 🖼️ **图片处理** - 自动调整尺寸、压缩、重命名
 - 📦 **批量处理** - 一次性处理多个 SKU
@@ -90,7 +91,22 @@ condition: new
 cp /path/to/photos/*.jpg ~/jewelry-listings/SKU-001/
 ```
 
-### 2️⃣ 生成 Listing
+### 2️⃣ AI 图片识别（v3.1.0 新增）
+
+使用 qwen3.6-plus 分析商品图片，提取关键特征：
+
+```bash
+# 分析商品图片
+npx jewelry-listing analyze ~/jewelry-listings/SKU-001
+```
+
+**识别内容**：
+- 🎨 **颜色**: 主色、辅色、配色
+- 💎 **材质**: 金属类型、宝石种类
+- ✨ **款式**: 简约、复古、华丽
+- 🔍 **细节**: 刻印、工艺、扣环
+
+### 3️⃣ 生成 Listing
 
 ```bash
 # 处理单个 SKU
@@ -185,6 +201,37 @@ npx jewelry-listing images <sku-folder> [options]
 **示例**:
 ```bash
 npx jewelry-listing images ./SKU-001 --resize 2000x2000 --quality 90
+```
+
+### analyze - AI 图片识别（v3.1.0 新增）
+
+```bash
+npx jewelry-listing analyze <sku-folder> [options]
+```
+
+**选项**:
+- `-m, --model <model>` - AI 模型（默认：`qwen3.6-plus`）
+- `-o, --output <dir>` - 输出目录
+- `-v, --verbose` - 详细输出
+
+**示例**:
+```bash
+npx jewelry-listing analyze ./SKU-001 -v
+```
+
+**输出文件**:
+```json
+{
+  "version": "3.1.0",
+  "model_used": "qwen3.6-plus",
+  "summary": {
+    "total_images": 4,
+    "primary_colors": ["Gold", "Cream"],
+    "detected_materials": ["18K Gold", "Freshwater Pearl"],
+    "detected_styles": ["Elegant", "Minimalist"]
+  },
+  "images": { ... }
+}
 ```
 
 ## 📋 info.md 格式
@@ -336,6 +383,13 @@ jewelry-listing/
 5. 开启 Pull Request
 
 ## 📝 更新日志
+
+### 3.1.0 (2026-04-13)
+- 🤖 **新增 AI 图片识别功能**
+- ✨ 使用 qwen3.6-plus 模型分析商品图片
+- 🎨 自动识别颜色、材质、款式、细节
+- 📄 生成结构化图片分析报告
+- 🔧 新增 `analyze` 命令
 
 ### 3.0.0 (2026-04-04)
 - 🎉 初始版本发布

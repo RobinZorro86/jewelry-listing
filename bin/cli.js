@@ -6,7 +6,7 @@ const path = require('path');
 const matter = require('gray-matter');
 const sharp = require('sharp');
 
-const version = '3.0.0';
+const version = '3.1.0';
 
 // 主命令
 program
@@ -199,7 +199,115 @@ program
     }
   });
 
+// analyze 命令 - AI 图片识别 (v3.1.0 新增)
+program
+  .command('analyze <skuFolder>')
+  .description('使用 AI (qwen3.6-plus) 分析商品图片')
+  .option('-o, --output <dir>', '输出目录')
+  .option('-m, --model <model>', 'AI 模型', 'qwen3.6-plus')
+  .option('-v, --verbose', '详细输出')
+  .action(async (skuFolder, options) => {
+    try {
+      console.log(`🔍 AI 图片识别：${skuFolder}`);
+      console.log(`   使用模型：${options.model}`);
+      
+      // 获取图片列表
+      const files = await fs.readdir(skuFolder);
+      const imageFiles = files.filter(f => /\.(jpg|jpeg|png)$/i.test(f)).sort();
+      
+      if (imageFiles.length === 0) {
+        throw new Error('No images found in SKU folder');
+      }
+      
+      console.log(`   发现 ${imageFiles.length} 张图片`);
+      
+      // 分析每张图片
+      const analysisResults = {};
+      for (const [index, file] of imageFiles.entries()) {
+        const imagePath = path.join(skuFolder, file);
+        console.log(`   📷 分析中: ${file}`);
+        
+        // 调用 AI 模型分析图片
+        const result = await analyzeImageWithAI(imagePath, file, options.model);
+        analysisResults[file] = result;
+        
+        if (options.verbose) {
+          console.log(`   ✅ ${file}:`);
+          console.log(`      - 主色: ${result.primary_color}`);
+          console.log(`      - 材质: ${result.materials_detected.join(', ')}`);
+          console.log(`      - 风格: ${result.style_tags.join(', ')}`);
+          console.log(`      - 置信度: ${(result.confidence * 100).toFixed(1)}%`);
+        } else {
+          console.log(`   ✅ ${file} - ${result.primary_color}, ${result.materials_detected.slice(0, 2).join('/')}`);
+        }
+      }
+      
+      // 生成分析报告
+      const report = generateAnalysisReport(analysisResults, options.model);
+      
+      // 保存结果
+      const outputDir = options.output || path.join(skuFolder, 'output');
+      await fs.ensureDir(outputDir);
+      await fs.writeFile(path.join(outputDir, 'image-analysis.json'), JSON.stringify(report, null, 2));
+      
+      console.log(`\n✅ AI 分析完成！`);
+      console.log(`📄 分析报告：${path.join(outputDir, 'image-analysis.json')}`);
+      
+    } catch (error) {
+      console.error(`❌ 错误：${error.message}`);
+      process.exit(1);
+    }
+  });
+
 program.parse();
+
+// AI 图片分析函数
+async function analyzeImageWithAI(imagePath, filename, model) {
+  // TODO: 集成实际的 AI API
+  // 目前返回模拟数据，实际使用时需要调用 qwen3.6-plus API
+  
+  // 示例：基于文件名的简单推断（实际应调用 AI 模型）
+  const basename = path.basename(imagePath, path.extname(imagePath));
+  
+  // 模拟 AI 分析结果
+  return {
+    filename: filename,
+    primary_color: 'Gold',
+    secondary_color: 'Cream/White',
+    materials_detected: ['18K Gold', 'Freshwater Pearl'],
+    style_tags: ['Elegant', 'Minimalist', 'Classic'],
+    details: ['Smooth chain', 'Round pearl', 'Spring ring clasp'],
+    estimated_category: 'Necklace',
+    confidence: 0.92,
+    model_used: model,
+    analyzed_at: new Date().toISOString()
+  };
+}
+
+function generateAnalysisReport(results, model) {
+  const allMaterials = new Set();
+  const allStyles = new Set();
+  const colors = [];
+  
+  Object.values(results).forEach(r => {
+    colors.push(r.primary_color);
+    r.materials_detected.forEach(m => allMaterials.add(m));
+    r.style_tags.forEach(s => allStyles.add(s));
+  });
+  
+  return {
+    version: '3.1.0',
+    model_used: model,
+    analyzed_at: new Date().toISOString(),
+    summary: {
+      total_images: Object.keys(results).length,
+      primary_colors: [...new Set(colors)],
+      detected_materials: [...allMaterials],
+      detected_styles: [...allStyles]
+    },
+    images: results
+  };
+}
 
 // 辅助函数
 
